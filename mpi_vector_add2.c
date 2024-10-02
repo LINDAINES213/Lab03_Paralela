@@ -21,23 +21,25 @@ void Print_vector(double local_b[], int local_n, int n, char title[],
       int my_rank, MPI_Comm comm);
 void Parallel_vector_sum(double local_x[], double local_y[],
       double local_z[], int local_n);
+void Read_n(int* n_p, int* local_n_p, int my_rank, int comm_sz, MPI_Comm comm, int argc, char *argv[]);
 
 
 /*-------------------------------------------------------------------*/
-int main(void) {
-   int n = 100000; 
+int main(int argc, char *argv[]) {
+   int n; 
    int local_n;
    int comm_sz, my_rank;
    double *local_x, *local_y, *local_z;
    MPI_Comm comm;
    double tstart, tend;
 
-   MPI_Init(NULL, NULL);
+   MPI_Init(&argc, &argv);
    comm = MPI_COMM_WORLD;
    MPI_Comm_size(comm, &comm_sz);
    MPI_Comm_rank(comm, &my_rank);
 
-   local_n = n/comm_sz;
+   // Leer el tamaño del vector desde los argumentos de línea de comandos
+   Read_n(&n, &local_n, my_rank, comm_sz, comm, argc, argv);
 
    tstart = MPI_Wtime();
    Allocate_vectors(&local_x, &local_y, &local_z, local_n, comm);
@@ -53,9 +55,10 @@ int main(void) {
    Print_vector(local_y, local_n, n, "\nVector y", my_rank, comm);
    Print_vector(local_z, local_n, n, "\nThe sum is", my_rank, comm);
 
-   //Print_vector(local_z, local_n, n, "The sum is", my_rank, comm);
-   if(my_rank==0)
-    printf("\nTook %f ms to run\n", (tend-tstart)*1000);
+   double cpu_time_used = ((double) (tend - tstart)) * 1000;
+
+   if(my_rank == 0)
+       printf("\nTook %f ms to run\n", cpu_time_used);
 
    free(local_x);
    free(local_y);
@@ -65,6 +68,7 @@ int main(void) {
 
    return 0;
 }  /* main */
+
 
 /*-------------------------------------------------------------------
  * Function:  Check_for_error
@@ -106,8 +110,8 @@ void Check_for_error(
 
 /*-------------------------------------------------------------------
  * Function:  Read_n
- * Purpose:   Get the order of the vectors from stdin on proc 0 and
- *            broadcast to other processes.
+ * Purpose:   Get the order of the vectors from command line arguments
+ *            on proc 0 and broadcast to other processes.
  * In args:   my_rank:    process rank in communicator
  *            comm_sz:    number of processes in communicator
  *            comm:       communicator containing all the processes
@@ -122,19 +126,28 @@ void Read_n(
       int*      local_n_p  /* out */,
       int       my_rank    /* in  */,
       int       comm_sz    /* in  */,
-      MPI_Comm  comm       /* in  */) {
+      MPI_Comm  comm       /* in  */,
+      int       argc,
+      char*     argv[]) {
    int local_ok = 1;
    char *fname = "Read_n";
 
    if (my_rank == 0) {
-      printf("What's the order of the vectors?\n");
-      scanf("%d", n_p);
+      if (argc < 2) {
+         fprintf(stderr, "Usage: %s <number_of_elements>\n", argv[0]);
+         MPI_Abort(comm, 1);
+      }
+      *n_p = atoi(argv[1]);
+      printf("Proc 0 read n = %d\n", *n_p);
    }
+
+   // Comunicar el tamaño a todos los procesos
    MPI_Bcast(n_p, 1, MPI_INT, 0, comm);
+
    if (*n_p <= 0 || *n_p % comm_sz != 0) local_ok = 0;
    Check_for_error(local_ok, fname,
          "n should be > 0 and evenly divisible by comm_sz", comm);
-   *local_n_p = *n_p/comm_sz;
+   *local_n_p = *n_p / comm_sz;
 }  /* Read_n */
 
 
@@ -222,7 +235,7 @@ void Print_vector(
 
       // Imprimir primeros 10 elementos
       printf("First 10 elements: ");
-      for (i = 0; i < 10; i++)
+      for (i = 0; i < 10 && i < n; i++)
          printf("%f ", b[i]);
       printf("\n");
 
