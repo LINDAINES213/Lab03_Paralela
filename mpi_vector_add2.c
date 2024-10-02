@@ -1,12 +1,11 @@
-/* File:     mpi_vector_add.c
+/* File:     mpi_vector_add2.c
  *
- * Purpose:  Implement parallel vector addition using a block
- *           distribution of the vectors.  This version also
- *           illustrates the use of MPI_Scatter and MPI_Gather.
  *
  * Compile:  mpicc -g -Wall -o mpi_vector_add2 mpi_vector_add2.c
- * Run:      mpiexec ./vector_add2
+ * Run:      mpiexec ./mpi_vector_add2 <number_of_elements>
+ * 
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>

@@ -1,10 +1,10 @@
 /* File:     vector_add.c
  *
- * Purpose:  Implement vector addition
- *
  * Compile:  gcc -g -Wall -o vector_add2 vector_add2.c
- * Run:      ./vector_add2
+ * Run:      ./vector_add2 <number_of_elements>
+ * 
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
